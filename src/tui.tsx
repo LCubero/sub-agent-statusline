@@ -23,6 +23,7 @@ import { dirname, join } from "node:path";
 import {
   For,
   Show,
+  createRoot,
   createEffect,
   createMemo,
   createSignal,
@@ -63,6 +64,7 @@ import {
   type ChildSessionState,
   type StatuslineState,
 } from "./state.js";
+import { registerSubagentCommands } from "./tui-commands.js";
 
 const TUI_PLUGIN_ID = "subagent-statusline.tui";
 const ELAPSED_TICK_MS = 1000;
@@ -1902,7 +1904,7 @@ async function probeRunningEvidence(input: {
   };
 }
 
-const tui: TuiPlugin = async (api: TuiPluginApi) => {
+function initializeTui(api: TuiPluginApi, disposeRoot: () => void): void {
   const statePath = resolveStatePath();
   const textPath = resolveTextPath(statePath);
   const [state, setState] = createSignal<StatuslineState>(createEmptyState());
@@ -2007,26 +2009,12 @@ const tui: TuiPlugin = async (api: TuiPluginApi) => {
     }, 0);
   };
 
-  const commandDispose = api.command?.register?.(() => [
-    {
-      title: subagentsSectionEnabled()
-        ? "Subagents: Disable sidebar section"
-        : "Subagents: Enable sidebar section",
-      value: "subagent-statusline.toggle-sidebar-section",
-      description: "Toggle the entire subagent sidebar section",
-      category: "Subagents",
-      onSelect: () =>
-        setSubagentsSectionEnabledPreference(!subagentsSectionEnabled()),
-    },
-    {
-      title: "Subagents: Focus sidebar list",
-      value: "subagent-statusline.focus-sidebar-list",
-      description: "Focus the subagent sidebar list for keyboard navigation",
-      category: "Subagents",
-      keybind: "alt+b",
-      onSelect: toggleSidebarListFocus,
-    },
-  ]) ?? (() => undefined);
+  const commandDispose = registerSubagentCommands({
+    api,
+    sectionEnabled: subagentsSectionEnabled,
+    toggleSection: setSubagentsSectionEnabledPreference,
+    focusSidebarList: toggleSidebarListFocus,
+  });
 
   const clearHydrateRetryTimeout = (sessionID: string): void => {
     const timeout = hydrateRetryTimeouts.get(sessionID);
@@ -2466,6 +2454,7 @@ const tui: TuiPlugin = async (api: TuiPluginApi) => {
     for (const dispose of disposers) {
       dispose();
     }
+    disposeRoot();
   });
 
   api.slots.register({
@@ -2539,6 +2528,10 @@ const tui: TuiPlugin = async (api: TuiPluginApi) => {
       },
     },
   });
+}
+
+const tui: TuiPlugin = async (api: TuiPluginApi) => {
+  createRoot((disposeRoot) => initializeTui(api, disposeRoot));
 };
 
 const plugin: TuiPluginModule = {
