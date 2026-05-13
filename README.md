@@ -8,6 +8,31 @@ See what your subagents are doing without losing track of them: running, done, f
 
 This package works as a **TUI sidebar plugin** for OpenCode.
 
+> [!WARNING]
+> Package-based installation through `tui.json` is currently affected by an OpenCode/OpenTUI loading issue.
+>
+> Loading the plugin as a dependency, for example `"plugin": ["opencode-subagent-statusline"]`, may fail while OpenCode resolves TUI dependencies from its package cache.
+>
+> Until OpenCode ships a fix, clone this repository, build it locally, and point your TUI config directly to `dist/tui.js`:
+>
+> ```sh
+> git clone https://github.com/Joaquinvesapa/sub-agent-statusline.git
+> cd sub-agent-statusline
+> pnpm install
+> pnpm build
+> ```
+>
+> ```json
+> {
+>   "$schema": "https://opencode.ai/tui.json",
+>   "plugin": [
+>     "/absolute/path/to/sub-agent-statusline/dist/tui.js"
+>   ]
+> }
+> ```
+>
+> If you do not want to run the plugin locally, please wait for an OpenCode update that fixes dependency-based TUI plugin loading.
+
 ---
 
 ## Why?
