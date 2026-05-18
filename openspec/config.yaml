@@ -1,0 +1,80 @@
+project:
+  name: sub-agent-statusline
+  package: opencode-subagent-statusline
+  description: OpenCode TUI/statusline plugin that monitors delegated subagent sessions, statuses, elapsed time, counters, and token/context usage when available.
+  language: TypeScript
+  module_system: ESM
+  runtime: Node.js
+  package_manager: pnpm
+  entrypoints:
+    plugin_tui: src/tui.tsx
+    runtime: src/index.ts
+  core_modules:
+    events: src/events.ts
+    state: src/state.ts
+    reconcile: src/reconcile.ts
+    render: src/render.ts
+
+testing:
+  strict_tdd: true
+  runner: pnpm test
+  typecheck: pnpm typecheck
+  build: pnpm build
+  framework: Vitest
+  config: vitest.config.ts
+  setup_files:
+    - test/setup.ts
+  include:
+    - src/**/*.test.ts
+    - test/**/*.integration.test.ts
+  strategy_docs:
+    - docs/testing.md
+  guidance:
+    - Prefer focused unit tests for event parsing, state transitions, counters, and rendering.
+    - Use runtime integration tests for filesystem persistence and OpenCode-style event handling.
+    - Avoid deep TUI/e2e automation unless the TUI seam explicitly requires it.
+
+sdd:
+  strict_tdd: true
+  artifact_store: openspec
+  phases:
+    init:
+      status: complete
+      rules:
+        - Detect project stack and test runner before planning changes.
+        - Preserve user-maintained SDD config if this file already exists in future runs.
+    explore:
+      rules:
+        - Map event payload shapes for subagent tool calls versus real child sessions.
+        - Identify where counters increment and where terminal entries are pruned.
+        - Capture evidence from existing fixtures/tests before proposing behavior changes.
+    proposal:
+      rules:
+        - Define the counting bug, non-goals, and expected user-visible behavior.
+    spec:
+      rules:
+        - Specify acceptance criteria for separating call placeholders from real subagent executions.
+        - Include counter semantics and visible list semantics.
+    design:
+      rules:
+        - Keep detection logic centralized in event/state boundaries where practical.
+        - Prefer explicit source/type discrimination over timing-based filtering.
+    tasks:
+      rules:
+        - Keep tasks reviewable and include tests with the behavior they verify.
+        - If forecast exceeds 400 changed lines, pause and recommend chained PR slicing.
+    apply:
+      rules:
+        - STRICT TDD MODE IS ACTIVE. Follow RED, GREEN, TRIANGULATE, REFACTOR.
+        - Run the configured test runner and record evidence.
+    verify:
+      rules:
+        - Run pnpm test and pnpm typecheck unless scoped verification is explicitly accepted.
+        - Confirm no pre-existing dirty files were unintentionally modified.
+
+change_context:
+  requested_change: Separate subagent tool calls from real subagent runs so zero-second call artifacts are not counted as executed subagents.
+  known_preexisting_dirty_files:
+    - .gitignore
+    - context.md
+  skill_registry: .atl/skill-registry.md
