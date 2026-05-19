@@ -51,6 +51,10 @@ import {
   type RunningReconcileEvidence,
 } from "./reconcile.js";
 import {
+  focusPromptWithDeferredRetry,
+  resolveSidebarReturnFocusAction,
+} from "./tui-focus.js";
+import {
   createEmptyState,
   markChildStatus,
   refreshDerivedFields,
@@ -1990,9 +1994,11 @@ function initializeTui(api: TuiPluginApi, disposeRoot: () => void): void {
   };
 
   const focusActivePrompt = (): void => {
-    setTimeout(() => {
-      activePromptRef?.focus();
-    }, 0);
+    focusPromptWithDeferredRetry(() => {
+      if (!activePromptRef) return false;
+      activePromptRef.focus();
+      return true;
+    });
   };
 
   const rememberSidebarChildNavigation = (input: {
@@ -2086,19 +2092,17 @@ function initializeTui(api: TuiPluginApi, disposeRoot: () => void): void {
       resetHydrateRetry(previousRouteSessionID);
     }
 
-    if (pendingSidebarRefocus && previousRouteSessionID !== routeSessionID) {
-      if (
-        previousRouteSessionID === pendingSidebarRefocus.childSessionID &&
-        routeSessionID === pendingSidebarRefocus.parentSessionID
-      ) {
-        const childRowID = pendingSidebarRefocus.childRowID;
-        pendingSidebarRefocus = undefined;
-        setTimeout(() => {
-          focusVisibleSidebarSubagentList(childRowID);
-        }, 0);
-      } else if (routeSessionID !== pendingSidebarRefocus.childSessionID) {
-        pendingSidebarRefocus = undefined;
-      }
+    const sidebarReturnAction = resolveSidebarReturnFocusAction({
+      pendingSidebarRefocus,
+      previousRouteSessionID,
+      routeSessionID,
+    });
+    if (sidebarReturnAction === "focus-prompt") {
+      pendingSidebarRefocus = undefined;
+      blurVisibleSidebarSubagentList();
+      focusActivePrompt();
+    } else if (sidebarReturnAction === "clear-pending") {
+      pendingSidebarRefocus = undefined;
     }
 
     previousRouteSessionID = routeSessionID;

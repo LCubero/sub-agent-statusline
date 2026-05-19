@@ -85,6 +85,10 @@ navigation shortcuts are handled only while the sidebar list is focused.
 Opening a selected session is a no-op when there is no visible or navigable
 subagent.
 
+When a child session is opened from the sidebar, returning with OpenCode `Up`
+(`session_parent`) moves keyboard focus to the parent prompt so you can type
+immediately.
+
 ---
 
 ## Documentation

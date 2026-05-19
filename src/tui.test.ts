@@ -3,6 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { readOpenCodeLogFileIfSmall } from "./logs.js";
+import {
+  focusPromptWithDeferredRetry,
+  resolveSidebarReturnFocusAction,
+} from "./tui-focus.js";
 import { registerSubagentCommands } from "./tui-commands.js";
 
 describe("registerSubagentCommands", () => {
@@ -85,5 +89,77 @@ describe("readOpenCodeLogFileIfSmall", () => {
 
     expect(readOpenCodeLogFileIfSmall(smallLog)).toBe("small log");
     expect(readOpenCodeLogFileIfSmall(hugeLog)).toBeUndefined();
+  });
+});
+
+describe("resolveSidebarReturnFocusAction", () => {
+  const pendingSidebarRefocus = {
+    parentSessionID: "parent",
+    childSessionID: "child",
+    childRowID: "row-1",
+  };
+
+  it("returns focus-prompt for remembered child -> parent return", () => {
+    expect(
+      resolveSidebarReturnFocusAction({
+        pendingSidebarRefocus,
+        previousRouteSessionID: "child",
+        routeSessionID: "parent",
+      }),
+    ).toBe("focus-prompt");
+  });
+
+  it("returns clear-pending when route leaves remembered child path", () => {
+    expect(
+      resolveSidebarReturnFocusAction({
+        pendingSidebarRefocus,
+        previousRouteSessionID: "child",
+        routeSessionID: "another",
+      }),
+    ).toBe("clear-pending");
+  });
+
+  it("returns none for unrelated transitions while still on child", () => {
+    expect(
+      resolveSidebarReturnFocusAction({
+        pendingSidebarRefocus,
+        previousRouteSessionID: "parent",
+        routeSessionID: "child",
+      }),
+    ).toBe("none");
+  });
+
+  it("returns none when no pending sidebar navigation exists", () => {
+    expect(
+      resolveSidebarReturnFocusAction({
+        previousRouteSessionID: "child",
+        routeSessionID: "parent",
+      }),
+    ).toBe("none");
+  });
+});
+
+describe("focusPromptWithDeferredRetry", () => {
+  it("retries once when prompt focus is initially unavailable", () => {
+    const queue: Array<() => void> = [];
+    const schedule = (callback: () => void): void => {
+      queue.push(callback);
+    };
+    let hasPromptRef = false;
+    const focus = vi.fn(() => {
+      if (!hasPromptRef) {
+        hasPromptRef = true;
+        return false;
+      }
+      return true;
+    });
+
+    focusPromptWithDeferredRetry(focus, schedule);
+    expect(queue).toHaveLength(1);
+    queue.shift()?.();
+    expect(focus).toHaveBeenCalledTimes(1);
+    expect(queue).toHaveLength(1);
+    queue.shift()?.();
+    expect(focus).toHaveBeenCalledTimes(2);
   });
 });

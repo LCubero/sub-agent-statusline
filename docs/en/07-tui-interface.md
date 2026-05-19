@@ -118,6 +118,10 @@ targetSessionID = "ses_..."
 
 If the plugin only knows a `tool:*` wrapper or a subtask without a real session, the row may be visible but not navigable.
 
+When a child session is opened from this sidebar list, returning with OpenCode
+`Up` (`session_parent`) shifts keyboard focus to the parent prompt instead of
+keeping list focus.
+
 ## Expansion and preferences
 
 The section can be expanded/collapsed and enabled/disabled.
